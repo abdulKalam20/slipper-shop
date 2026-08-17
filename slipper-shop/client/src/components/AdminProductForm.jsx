@@ -8,8 +8,9 @@ export default function AdminProductForm({ onProductAdded }) {
   const [form, setForm] = useState({
     name: "",
     category: "slippers",
+    gender: "unisex",
     price: "",
-    sizes: "", // comma separated input, e.g. "6,7,8,9"
+    sizes: "",
   });
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -27,7 +28,6 @@ export default function AdminProductForm({ onProductAdded }) {
     setPreview(URL.createObjectURL(file));
   };
 
-  // Step 1: upload the raw image file straight to Cloudinary from the browser
   const uploadImageToCloudinary = async (file) => {
     const data = new FormData();
     data.append("file", file);
@@ -55,10 +55,8 @@ export default function AdminProductForm({ onProductAdded }) {
 
     setLoading(true);
     try {
-      // Step 1: image -> Cloudinary
       const { imageUrl, imagePublicId } = await uploadImageToCloudinary(imageFile);
 
-      // Step 2: product details + image URL -> our backend -> MongoDB
       const token = localStorage.getItem("adminToken");
       const sizesArray = form.sizes
         .split(",")
@@ -74,6 +72,7 @@ export default function AdminProductForm({ onProductAdded }) {
         body: JSON.stringify({
           name: form.name,
           category: form.category,
+          gender: form.category === "slippers" ? form.gender : "unisex",
           price: Number(form.price),
           sizes: form.category === "slippers" ? sizesArray : [],
           imageUrl,
@@ -89,8 +88,7 @@ export default function AdminProductForm({ onProductAdded }) {
       const newProduct = await res.json();
       onProductAdded?.(newProduct);
 
-      // reset form
-      setForm({ name: "", category: "slippers", price: "", sizes: "" });
+      setForm({ name: "", category: "slippers", gender: "unisex", price: "", sizes: "" });
       setImageFile(null);
       setPreview(null);
       e.target.reset();
@@ -114,9 +112,13 @@ export default function AdminProductForm({ onProductAdded }) {
           name="name"
           value={form.name}
           onChange={handleChange}
+          placeholder="e.g. Crocs Classic Clog"
           required
           className="w-full border rounded px-3 py-2"
         />
+        <p className="text-xs text-gray-400 mt-1">
+          Search matches this name, so include brand/keywords like "Crocs".
+        </p>
       </div>
 
       <div>
@@ -132,6 +134,22 @@ export default function AdminProductForm({ onProductAdded }) {
           <option value="tea-powder">Tea Powder</option>
         </select>
       </div>
+
+      {form.category === "slippers" && (
+        <div>
+          <label className="block text-sm font-medium mb-1">Gender</label>
+          <select
+            name="gender"
+            value={form.gender}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2"
+          >
+            <option value="unisex">Unisex</option>
+            <option value="men">Men's</option>
+            <option value="women">Women's</option>
+          </select>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium mb-1">Price (₹)</label>

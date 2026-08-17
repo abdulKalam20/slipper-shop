@@ -13,12 +13,18 @@ const productSchema = new mongoose.Schema(
       enum: ["slippers", "sweeper", "tea-powder"],
       default: "slippers",
     },
+    // Only meaningful for slippers. "unisex" is the safe default for
+    // sweeper / tea-powder or slippers that fit anyone.
+    gender: {
+      type: String,
+      enum: ["men", "women", "unisex"],
+      default: "unisex",
+    },
     price: {
       type: Number,
       required: true,
       min: 0,
     },
-    // Sizes only matter for slippers. Leave as [] for sweeper / tea-powder.
     sizes: {
       type: [String],
       default: [],
@@ -27,7 +33,6 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    // Needed so we can delete the image from Cloudinary when the product is deleted
     imagePublicId: {
       type: String,
       required: true,
@@ -39,6 +44,9 @@ const productSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Text index on name so $text search works for keywords like "crocs"
+productSchema.index({ name: "text" });
 
 const Product = mongoose.model("Product", productSchema);
 export default Product;

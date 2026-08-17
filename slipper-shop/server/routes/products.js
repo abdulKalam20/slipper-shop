@@ -5,11 +5,22 @@ import verifyAdmin from "../middleware/verifyAdmin.js";
 
 const router = express.Router();
 
-// GET /api/products?category=slippers  -> public, anyone can browse
+// GET /api/products?category=slippers&gender=women&search=crocs
+// All three filters are optional and combine together.
 router.get("/", async (req, res) => {
   try {
-    const { category } = req.query;
-    const filter = category ? { category } : {};
+    const { category, gender, search } = req.query;
+    const filter = {};
+
+    if (category) filter.category = category;
+    if (gender) filter.gender = gender;
+
+    if (search) {
+      // Case-insensitive partial match on product name, e.g. "crocs" only
+      // returns products whose name contains "crocs".
+      filter.name = { $regex: search, $options: "i" };
+    }
+
     const products = await Product.find(filter).sort({ createdAt: -1 });
     res.json(products);
   } catch (err) {
@@ -17,7 +28,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/products/:id -> public, single product detail
 router.get("/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -28,11 +38,9 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// POST /api/products -> admin only. Image is already uploaded to Cloudinary
-// on the frontend; this just saves the returned URL + publicId + product info.
 router.post("/", verifyAdmin, async (req, res) => {
   try {
-    const { name, category, price, sizes, imageUrl, imagePublicId } = req.body;
+    const { name, category, gender, price, sizes, imageUrl, imagePublicId } = req.body;
 
     if (!name || !price || !imageUrl || !imagePublicId) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -41,6 +49,7 @@ router.post("/", verifyAdmin, async (req, res) => {
     const product = await Product.create({
       name,
       category: category || "slippers",
+      gender: gender || "unisex",
       price,
       sizes: sizes || [],
       imageUrl,
@@ -53,7 +62,6 @@ router.post("/", verifyAdmin, async (req, res) => {
   }
 });
 
-// PUT /api/products/:id -> admin only. Edit details or toggle inStock.
 router.put("/:id", verifyAdmin, async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
@@ -67,13 +75,11 @@ router.put("/:id", verifyAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/products/:id -> admin only. Removes DB entry AND the Cloudinary image.
 router.delete("/:id", verifyAdmin, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: "Product not found" });
 
-    // Clean up the image on Cloudinary so you don't accumulate orphaned files
     if (product.imagePublicId) {
       await cloudinary.uploader.destroy(product.imagePublicId);
     }

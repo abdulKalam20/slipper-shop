@@ -2,25 +2,32 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminProductForm from "../components/AdminProductForm.jsx";
 import ProductCard from "../components/ProductCard.jsx";
+import SearchBar from "../components/SearchBar.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [gender, setGender] = useState("");
   const navigate = useNavigate();
 
   const fetchProducts = async () => {
     setLoading(true);
-    const res = await fetch(`${API_URL}/api/products`);
+    const params = new URLSearchParams();
+    if (gender) params.set("gender", gender);
+    if (search.trim()) params.set("search", search.trim());
+    const res = await fetch(`${API_URL}/api/products?${params.toString()}`);
     const data = await res.json();
     setProducts(data);
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    const timer = setTimeout(fetchProducts, 300);
+    return () => clearTimeout(timer);
+  }, [search, gender]);
 
   const handleLogout = () => {
     localStorage.removeItem("adminToken");
@@ -54,6 +61,15 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-semibold mb-3">
             Current Products ({products.length})
           </h2>
+
+          <SearchBar
+            search={search}
+            setSearch={setSearch}
+            gender={gender}
+            setGender={setGender}
+            showGenderFilter={true}
+          />
+
           {loading ? (
             <p>Loading...</p>
           ) : (

@@ -21,7 +21,14 @@ export default function ProductCard({ product, isAdmin, onDeleted }) {
     <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
       <img src={product.imageUrl} alt={product.name} className="w-full h-48 object-cover" />
       <div className="p-4">
-        <h3 className="font-semibold">{product.name}</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">{product.name}</h3>
+          {product.category === "slippers" && product.gender && product.gender !== "unisex" && (
+            <span className="text-[10px] uppercase tracking-wide bg-gray-100 rounded px-1.5 py-0.5">
+              {product.gender}
+            </span>
+          )}
+        </div>
         <p className="text-gray-600">₹{product.price}</p>
 
         {product.sizes?.length > 0 && (
